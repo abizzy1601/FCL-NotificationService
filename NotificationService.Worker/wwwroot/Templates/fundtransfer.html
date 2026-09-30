@@ -1,0 +1,155 @@
+﻿<!DOCTYPE html>
+<html lang="en"
+      xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:v="urn:schemas-microsoft-com:vml"
+      xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Alert Type</title>
+
+    <style type="text/css">
+        body, table, td, a {
+            margin: 0;
+            padding: 0;
+        }
+
+        img {
+            border: 0;
+            outline: none;
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        table {
+            border-spacing: 0 !important;
+            border-collapse: collapse !important;
+        }
+
+        .ExternalClass {
+            width: 100%;
+        }
+
+            .ExternalClass * {
+                line-height: 100%;
+            }
+
+        @media only screen and (max-width: 690px) {
+            .container {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            .padded-section {
+                padding: 20px !important;
+            }
+
+            .alert-box {
+                width: 100% !important;
+                margin: 0 !important;
+            }
+        }
+    </style>
+</head>
+<body style="margin:0; padding:0; background-color:#f9f9f9; font-family:Arial,sans-serif;">
+
+    <table width="100%" bgcolor="#f9f9f9">
+        <tr>
+            <td align="center">
+
+                <table width="600" class="container" style="width:600px; max-width:600px; margin:40px auto; background-color:#f6f6f6;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td align="center">
+                            <img src="https://bnpl-cdnfile.fastcredit-ng.com/OTPheader.png"
+                                 alt="Fast Credit Mobile"
+                                 style="width:100%; max-width:600px;" />
+                        </td>
+                    </tr>
+
+                    <!-- Main Body -->
+                    <tr>
+                        <td class="padded-section" style="padding:20px; font-size:16px; color:#000;">
+                            <p style="margin:0 0 10px 0"><strong>{{transactionTypeDesc}} Alert</strong></p>
+                            <p style="margin:0 0 20px 0">
+                                Dear {{customerName}}, This is to notify you that a transaction just occured on your account. Kindly see details below:
+                            </p>
+
+                            <!-- Transaction Info Table -->
+                            <table class="alert-box" align="center" style="border:2px solid #029247; border-radius:8px; width:80%; background-color:#fff; margin:auto;">
+                                <tr>
+                                    <td colspan="2" style="text-align:center; padding:15px; font-size:20px; font-weight:bold; color:#029247; border-bottom:1px solid #ddd;">
+                                        ₦{{amount}}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:10px; font-weight:bold; color:#000; border-bottom:1px solid #f0f0f0;">Account</td>
+                                    <td style="padding:10px; color:#333; border-bottom:1px solid #f0f0f0;">{{accountNumber}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:10px; font-weight:bold; color:#000; border-bottom:1px solid #f0f0f0;">Date</td>
+                                    <td style="padding:10px; color:#333; border-bottom:1px solid #f0f0f0;">{{transactionDateTime}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:10px; font-weight:bold; color:#000; border-bottom:1px solid #f0f0f0;">Narration</td>
+                                    <td style="padding:10px; color:#333; border-bottom:1px solid #f0f0f0;">{{narration}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:10px; font-weight:bold; color:#000; border-bottom:1px solid #f0f0f0;">Reference</td>
+                                    <td style="padding:10px; color:#333; border-bottom:1px solid #f0f0f0;">{{transactionRef}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:10px; font-weight:bold; color:#000;">Transaction Type</td>
+                                    <td style="padding:10px; color:#333;">{{transactionType}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:10px; font-weight:bold; color:#000;">New Balance</td>
+                                    <td style="padding:10px; color:#333;">₦{{newBalance}}</td>
+                                </tr>
+                            </table>
+
+                            <div style="clear:both;"></div>
+
+                            <p style="margin:20px 0 0 0; font-size:14px; color:#000;">
+                                If you did not authorize this transaction, please contact us immediately at
+                                <a href="mailto:Appcommandcenter@fastcredit-ng.com" style="color:#029247; text-decoration:none;">Appcommandcenter@fastcredit-ng.com</a>.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td align="center" style="background:#fff; border-top:1px solid #ddd; padding:20px;">
+                            <h3 style="margin:0; font-family:'Charm',Arial,sans-serif; color:#000; font-size:20px;">Stay in touch</h3>
+                            <table style="margin-top:10px;">
+                                <tr>
+                                    <td><a href="#"><img src="https://bnpl-cdnfile.fastcredit-ng.com/footericon5.png" width="24" height="24" /></a></td>
+                                    <td><a href="#"><img src="https://bnpl-cdnfile.fastcredit-ng.com/footericon4.png" width="24" height="24" /></a></td>
+                                    <td><a href="#"><img src="https://bnpl-cdnfile.fastcredit-ng.com/footericon3.png" width="24" height="24" /></a></td>
+                                    <td><a href="#"><img src="https://bnpl-cdnfile.fastcredit-ng.com/footericon2.png" width="24" height="24" /></a></td>
+                                    <td><a href="#"><img src="https://bnpl-cdnfile.fastcredit-ng.com/footericon1.png" width="24" height="24" /></a></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding:10px; font-size:12px; color:#555;">
+                            <p style="margin:20px 0 0 0;">
+                                Copyright © {{year}} Fast Credit<br />
+                                All rights reserved.<br />
+                                For more details, email us at
+                                <a href="mailto:info@fastcredit-ng.com" style="color:blue; text-decoration:none;">info@fastcredit-ng.com</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

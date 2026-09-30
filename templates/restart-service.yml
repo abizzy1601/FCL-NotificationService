@@ -1,0 +1,58 @@
+parameters:
+- name: sshServiceConnection
+  type: string
+- name: remoteTargetPath
+  type: string
+- name: systemdService
+  type: string
+- name: serviceDirectoryName
+  type: string
+
+steps:
+# Restart service and verify
+- task: SSH@0
+  inputs:
+    sshEndpoint: ${{ parameters.sshServiceConnection }}
+    runOptions: 'inline'
+    inline: |
+      set -e
+
+      echo "Restarting service..."
+      
+      cd ${{ parameters.remoteTargetPath }}
+      
+      echo "Application structure:"
+      ls -la
+
+      echo "Starting ${{ parameters.systemdService }}..."
+      sudo systemctl daemon-reload
+      sudo systemctl enable --quiet ${{ parameters.systemdService }} 2>/dev/null || true
+      sudo systemctl start ${{ parameters.systemdService }}
+      sleep 20
+      
+      echo "Checking service status..."
+      sudo systemctl status ${{ parameters.systemdService }} --no-pager
+      
+      echo "Verifying service is active..."
+      if systemctl is-active --quiet ${{ parameters.systemdService }}; then
+        echo "${{ parameters.systemdService }} is running successfully"
+        
+        # Additional health check
+        echo "Performing health check..."
+        sleep 5
+        if systemctl is-active --quiet ${{ parameters.systemdService }}; then
+          echo "Health check passed - service is stable"
+        else
+          echo "Service failed health check"
+          exit 1
+        fi
+      else
+        echo "${{ parameters.systemdService }} failed to start"
+        # Show recent logs for debugging
+        echo "Recent service logs:"
+        sudo journalctl -u ${{ parameters.systemdService }} --no-pager -n 20
+        exit 1
+      fi
+
+      echo "Service restarted and verification completed for ${{ parameters.serviceDirectoryName }}"
+  displayName: 'Restart service and verify deployment'

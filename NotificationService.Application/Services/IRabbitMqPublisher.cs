@@ -1,0 +1,7 @@
+namespace NotificationService.Application.Services
+{
+    public interface IRabbitMqPublisher
+    {
+        Task PublishAsync<T>(string queueName, T message);
+    }
+}

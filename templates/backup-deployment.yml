@@ -1,0 +1,50 @@
+parameters:
+- name: sshServiceConnection
+  type: string
+- name: backupDir
+  type: string
+- name: remoteTargetPath
+  type: string
+- name: serviceDirectoryName
+  type: string
+- name: maxBackups
+  type: string
+  default: '5'
+
+steps:
+- task: SSH@0
+  inputs:
+    sshEndpoint: ${{ parameters.sshServiceConnection }}
+    runOptions: 'inline'
+    inline: |
+      set -e
+      
+      # Backup existing deployment
+      echo "Creating backup of existing ${{ parameters.serviceDirectoryName }} deployment..."
+      
+      TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+      sudo mkdir -p "${{ parameters.backupDir }}"
+      if [ -d "${{ parameters.remoteTargetPath }}" ]; then
+        sudo tar -czvf "${{ parameters.backupDir }}/${{ parameters.serviceDirectoryName }}.backup-$TIMESTAMP.tar.gz" "${{ parameters.remoteTargetPath }}" 2>/dev/null
+        echo "Backup created: ${{ parameters.backupDir }}/${{ parameters.serviceDirectoryName }}.backup-$TIMESTAMP.tar.gz"
+
+        # Count existing backups
+        cd "${{ parameters.backupDir }}"
+        BACKUP_COUNT=$(ls -d ${{ parameters.serviceDirectoryName }}.backup-* 2>/dev/null | wc -l)
+        echo "Found $BACKUP_COUNT existing backups"
+        
+        # Only cleanup if we have more than maxBackups
+        if [ $BACKUP_COUNT -gt ${{ parameters.maxBackups }} ]; then
+          echo "Removing old backups beyond the last ${{ parameters.maxBackups }}..."
+          ls -dt ${{ parameters.serviceDirectoryName }}.backup-* | tail -n +$((${{ parameters.maxBackups }} + 1)) | xargs -r sudo rm
+          echo "Cleanup completed. Remaining backups:"
+          ls -lt | grep "${{ parameters.serviceDirectoryName }}" || echo "No backups remaining"
+        else
+          echo "No cleanup needed - only $BACKUP_COUNT backups exist (max: '${{ parameters.maxBackups }}')"
+        fi
+      else
+        echo "No existing deployment found to backup."
+      fi
+
+      echo "Backup completed for existing deployment"
+  displayName: 'Backup current deployment'

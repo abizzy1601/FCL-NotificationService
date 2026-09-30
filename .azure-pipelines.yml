@@ -1,0 +1,203 @@
+trigger:
+  branches:
+    include:
+      - dev
+      - master
+
+pr:
+  branches:
+    include:
+      - dev
+      - master  
+
+resources:
+  repositories:
+    - repository: self
+      trigger: none
+
+variables:
+  - name: serviceName
+    value: 'T24FTNotificationService'
+  - name: buildConfiguration
+    value: 'Release'
+  - name: publishDir
+    value: '$(Build.SourcesDirectory)/publish'
+  - name: artifactName
+    value: '$(serviceName)-drop'
+  - name: maxBackups
+    value: '5'
+
+pool:
+  name: 'FCL-CICD-POOL'
+  demands:
+    - agent.name -equals vm-cicd-rc-001
+
+stages:
+# BUILD STAGE - Runs on PR to dev AND master branch
+- stage: Build
+  displayName: 'Build $(serviceName)'
+  jobs:
+  - job: BuildApp
+    displayName: 'Build $(serviceName)'
+    steps:
+    - task: UseDotNet@2
+      displayName: 'Install .NET SDK'
+      inputs:
+        packageType: 'sdk'
+        version: 8.x
+        installationPath: $(Agent.ToolsDirectory)/dotnet
+
+    - task: Bash@3
+      displayName: 'Create NuGet.config'
+      inputs:
+        targetType: 'inline'
+        script: |
+          cat > "$(Build.SourcesDirectory)/nuget.config" << EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+              <add key="fastcredit-ng" value="https://pkgs.dev.azure.com/fastcredit-ng/_packaging/fastcredit-ng/nuget/v3/index.json" />
+            </packageSources>
+          </configuration>
+          EOF
+
+    - task: NuGetAuthenticate@1
+      displayName: 'Authenticate with Azure Artifacts'
+    
+    - script: |
+        dotnet clean
+        dotnet restore --configfile nuget.config
+      displayName: 'Clean and Restore Dependencies'
+
+    - script: |
+        dotnet publish --configuration $(buildConfiguration) --output $(publishDir) --runtime linux-x64 --self-contained false
+      displayName: 'Build Deployment Artifact'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(publishDir)'
+        ArtifactName: '$(artifactName)'
+        publishLocation: 'Container'
+      displayName: 'Publish $(serviceName) Artifact'
+
+
+# DEPLOY TO TEST - Only on push to dev branch
+- stage: Deploy_Test
+  displayName: "Deploy $(serviceName) to Test"
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/dev'))
+  variables:
+    environment: 'test'
+    sshServiceConnection: 'ssh-omnichannel-test-server'
+    remoteTargetPath: '/home/johnoni/$(serviceName)-test'
+    testBackupDir: '/home/johnoni/BACKUP'
+    systemdService: '$(serviceName)-test.service'
+    serviceDirectoryName: '$(serviceName)-test'
+  jobs:
+  - deployment: DeployApp
+    displayName: "Deploy $(serviceName) to Test"
+    environment: test
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: '$(artifactName)'
+              downloadPath: '$(System.ArtifactsDirectory)'
+            displayName: 'Download $(serviceName) artifact'
+
+          # Use backup template to backup existing deployment and prepare for new deployment
+          - template: templates/backup-deployment.yml
+            parameters:
+              sshServiceConnection: ${{ variables.sshServiceConnection }}
+              backupDir: $(testBackupDir)
+              remoteTargetPath: ${{ variables.remoteTargetPath }}
+              serviceDirectoryName: ${{ variables.serviceDirectoryName }}
+              maxBackups: $(maxBackups)
+
+          # Copy published files to server
+          - task: CopyFilesOverSSH@0
+            inputs:
+              sshEndpoint: ${{ variables.sshServiceConnection }}
+              sourceFolder: '$(System.ArtifactsDirectory)/$(artifactName)'
+              contents: |
+                **
+                !appsettings.json
+                !Config/**
+              targetFolder: ${{ variables.remoteTargetPath }}
+              readyTimeout: '20000'
+              cleanTargetFolder: false
+            displayName: 'Copy Published Artifact files to server'
+
+          # Use service restart template to restart and verify deployment
+          - template: templates/restart-service.yml
+            parameters:
+              sshServiceConnection: ${{ variables.sshServiceConnection }}
+              remoteTargetPath: ${{ variables.remoteTargetPath }}
+              systemdService: ${{ variables.systemdService }}
+              serviceDirectoryName: ${{ variables.serviceDirectoryName }}
+
+
+# DEPLOY TO PRODUCTION - Only on push to master branch
+- stage: Deploy_Production
+  displayName: "Deploy $(serviceName) to Production"
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  variables:
+    environment: 'production'
+    sshServiceConnection: 'ssh-omnichannel-prod-server'
+    remoteTargetPath: '/home/johnoni/$(serviceName)'
+    prodBackupDir: '/home/johnoni/BACKUP'
+    systemdService: '$(serviceName).service'
+    serviceDirectoryName: '$(serviceName)'
+  jobs:
+  - deployment: DeployApp
+    displayName: "Deploy $(serviceName) to Production"
+    environment: production
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: '$(artifactName)'
+              downloadPath: '$(System.ArtifactsDirectory)'
+            displayName: 'Download $(serviceName) artifact'
+
+          # Use backup template to backup existing deployment and prepare for new deployment
+          - template: templates/backup-deployment.yml
+            parameters:
+              sshServiceConnection: ${{ variables.sshServiceConnection }}
+              backupDir: $(prodBackupDir)
+              remoteTargetPath: ${{ variables.remoteTargetPath }}
+              serviceDirectoryName: ${{ variables.serviceDirectoryName }}
+              maxBackups: $(maxBackups)
+
+          # Copy published files to server
+          - task: CopyFilesOverSSH@0
+            inputs:
+              sshEndpoint: ${{ variables.sshServiceConnection }}
+              sourceFolder: '$(System.ArtifactsDirectory)/$(artifactName)'
+              contents: |
+                **
+                !appsettings.json
+                !Config/**
+              targetFolder: ${{ variables.remoteTargetPath }}
+              readyTimeout: '20000'
+              cleanTargetFolder: false
+            displayName: 'Copy Published Artifact files to server'
+
+          # Use service restart template to restart and verify deployment
+          - template: templates/restart-service.yml
+            parameters:
+              sshServiceConnection: ${{ variables.sshServiceConnection }}
+              remoteTargetPath: ${{ variables.remoteTargetPath }}
+              systemdService: ${{ variables.systemdService }}
+              serviceDirectoryName: ${{ variables.serviceDirectoryName }}
